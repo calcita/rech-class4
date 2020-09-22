@@ -1,0 +1,606 @@
+---
+title: "R aplicado a la ECH"
+subtitle: "Setiembre 2020 <br> Gabriela Mathieu"
+#`r icon::fa_r_project(colour = "#43a2ca")`
+# author: "<br> `r icon::fa_creative_commons(colour = "#f0f0f0")` `r icon::fa_creative_commons_by(colour = "#f0f0f0")` `r icon::fa_creative_commons_sa(colour = "#f0f0f0")` <br> Gabriela Mathieu"
+author: <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br /> <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>
+output:
+  xaringan::moon_reader:
+    css: xaringan-themer.css
+    #css: [default, default-fonts, rladies-fonts]
+    #lib_dir: libs
+    nature:
+       highlightStyle: github
+       highlightLines: true
+       countIncrementalSlides: false
+       ratio: "16:9"
+       slideNumberFormat: |
+        <div class="progress-bar-container">
+          <div class="progress-bar" style="width: calc(%current% / %total% * 100%);">
+          </div>
+        </div>
+---
+```{r, include = F}
+knitr::opts_chunk$set(fig.width = 6, message = FALSE, warning = FALSE, comment = "", cache = FALSE, fig.retina = 3)
+library(flipbookr)
+library(tidyverse)
+library(flair)
+library(kableExtra)
+options(scipen = 9999)
+```
+```{r xaringan-themer, include=FALSE, warning=FALSE}
+library(xaringanthemer)
+style_duo_accent(
+  #base_color = "#43a2ca",
+  header_font_google = google_font("Mukta"),#Ubuntu Condensed
+  text_font_google   = google_font("Montserrat", "300", "300i"),
+  code_font_google   = google_font("Fira Mono"),
+  primary_color      = "#0F4C81", # pantone classic blue
+  secondary_color    = "#b3e2cd", # pantone baby blue
+  #header_font_google = google_font("Raleway"),
+  #text_font_google   = google_font("Raleway", "300", "300i"),
+  #code_font_google   = google_font("Source Code Pro"),
+  text_font_size     = "25px"
+#   colors = c(
+#   red = "#f34213",
+#   purple = "#3e2f5b",
+#   orange = "#ff8811",
+#   green = "#136f63",
+#   white = "#FFFFFF",
+# )
+)
+
+```
+
+```{r, include=FALSE}
+text_spec2 <- function(x = "x"){
+  text_spec(x, background = "#b3e2cd", bold = T)
+}
+```
+
+```{r echo = FALSE}
+library(dplyr) # cargo el paquete
+load("data/ech19.RData") #importo los datos
+```
+
+# ¿Qué haremos hoy?
+
+- Repaso
+<br><br>
+--
+
+- Diseño de muestra de la ECH
+<br><br>
+--
+
+- Mercado de trabajo: cálculo de variables y estimación de indicadores
+<br><br>
+--
+
+- Ejercicios
+
+
+---
+class: inverse, center, middle
+# ECH
+
+---
+# Características de la ECH
+
+- Es una encuesta realizada de forma ininterrumpida por el Instituto Nacional de Estadística (INE) desde el año 1968.
+<br><br>
+--
+
+- La Encuesta Continua de Hogares brinda los indicadores oficiales del `r text_spec2("mercado laboral")` (actividad, empleo y desempleo) y de `r text_spec2("ingresos")` de los hogares y las personas con periodicidad mensual, trimestral y anual. 
+<br><br>
+--
+
+- Es también utilizada para estimar la proporción de hogares y personas por debajo de la línea de `r text_spec2("pobreza")` y de `r text_spec2("indigencia")` de forma anual. 
+<br><br>
+--
+
+- Además incluye otras dimensiones de análisis: `r text_spec2("salud")`, `r text_spec2("educación")`, condiciones de la `r text_spec2("vivienda")`. 
+
+---
+# ![](https://raw.githubusercontent.com/calcita/Curso-rECH/master/images/house.png) Unidad de Análisis
+
+- `r text_spec2("Viviendas particulares")`, se excluyen viviendas colectivas (hospitales, residenciales, etc.) y personas en situación de calle. 
+<br><br>
+--
+
+- Los hogares son seleccionados al azar bajo un `r text_spec2("diseño muestral complejo")` que incluye varias etapas de selección.
+<br><br>
+--
+
+-  `r text_spec2("Marco muestral")` proveniene del `r text_spec2("Censo 2011")`, y busca brindar estimaciones confiables reduciendo los costos de la recolección de la información al mínimo posible.
+<br><br>
+--
+
+- Los hogares seleccionados en la muestra son entrevistados una única vez en el año, es una encuesta `r text_spec2("cross-section")` (de corte transversal).
+
+<!-- PSU : primary sampling unit -->
+<!-- USU:  Ultimate Sampling Unit -->
+---
+# ![](https://raw.githubusercontent.com/calcita/Curso-rECH/master/images/sampling.png) Selección de las viviendas
+
+- Para la selección de la muestra la población es particionada en `r text_spec2("estratos")`. 
+<br><br>
+--
+
+- Las viviendas incluidas en la muestra, en cada uno de los estratos, no son seleccionadas directamente. 
+<br><br>
+--
+
+- En una `r text_spec2("primera etapa")` son seleccionadas áreas pequeñas bien definidas, las que se denominan `r text_spec2("unidades primarias de muestreo (UPM)")`. En inglés PSU: Primary Sampling Units 
+<br><br>
+--
+
+- En una `r text_spec2("segunda etapa")` se seleccionan cinco `r text_spec2("viviendas titulares (Unidad última de muestreo <UUM>)")` y dos `r text_spec2("viviendas suplentes")`, con igual probabilidad de selección dentro de cada UPM seleccionada en la primera etapa. En inglés USU: Ultimate Sampling Units
+
+---
+# Tamaños
+
+- La cantidad de estratos son: 
+```{r}
+ech19 %>% count(estrato) %>% summarize(n()) #<<
+```
+
+- La cantidad de UPM efectivamente seleccionadas son: 
+```{r}
+# para 2019 la variable se llama upm_fic, la renombro
+ech19 <- ech19 %>% rename(upm = upm_fic) #<<
+ech19 %>% count(upm) %>% summarize(n()) #<<
+```
+
+---
+# Tamaños
+- Los hogares encuestados son: 
+```{r}
+ech19 %>% count(numero) %>% summarize(n()) #<<
+```
+
+<br><br>
+--
+
+- La cantidad de personas son: 
+```{r}
+nrow(ech19) #<<
+```
+
+---
+# Diseño de muestra para Montevideo
+
+Se selecciona una muestra bajo un diseño estratificado en dos etapas de selección.
+
+- Se definen 5 estratos de nivel socioeconómico
+
+```{r}
+# los estratos de Montevideo
+ech19 %>% filter(dpto == 1) %>% count(estrato) #<<
+```
+
+- Las UPM son un conjunto de viviendas, por ejemplo, manzanas
+
+- Las UUM son viviendas
+
+
+---
+# ![](https://raw.githubusercontent.com/calcita/Curso-rECH/master/images/weight-tool.png) Ponderadores
+
+- Permite obtener `r text_spec2("estimaciones")` tanto a nivel nacional, departamental y de otros dominios de estudio, entre ellos, sexo y tramos de edad. 
+<br><br>
+--
+
+- `r text_spec2("Desagregación temporal")` en 3 períodos, brindándose ponderadores: mensual, trimestral y anual: 
+```{r}
+ech19 %>% select(numero, pesoano, pesotri, pesomen) %>% head() #<<
+```
+
+
+---
+# ![](https://raw.githubusercontent.com/calcita/Curso-rECH/master/images/weight-tool.png) Ponderadores
+
+- Los `r text_spec2("ponderadores")` originales son `r text_spec2("ajustados")` en varias etapas, en la última se ajustan en base a las `r text_spec2("proyecciones de la población")` residente en viviendas particulares. 
+
+```{r}
+ech19 %>% summarise(sum(pesoano)) #<<
+
+ech19 %>% filter(duplicated(numero) == FALSE) %>% summarise(sum(pesoano)) #<<
+```
+--
+
+- Referencias: [Ficha técnica ECH 2018](http://www.ine.gub.uy/encuesta-continua-de-hogares1)
+
+
+---
+# ![](https://raw.githubusercontent.com/calcita/Curso-rECH/master/images/timeline.png) Comparación entre ECHs
+
+- `r text_spec2("Cobertura")`. Recién desde 2006 se releva para el total del país (antes estaban excluídas localidades
+rurales y urbanas pequeñas).
+<br><br>
+--
+
+- `r text_spec2("Ponderación")`. Desde el año 1991 al 1997 las Encuestas eran autoponderadas, a partir
+de 1998 pasan a tener ponderadores (pesoano, pesosem, pesotri).
+<br><br>
+--
+
+- `r text_spec2("Identificador")`. Hasta el 2009 el identificador del hogar era la variable 'correlat' (o 'correlat' y
+'departamento'). Posteriormente, la variable que identifica al hogar
+pasó a llamarse 'numero'.
+<br><br>
+--
+
+- `r text_spec2("Cambios metodológicos")` Al comparar datos de diferentes ECHs hay que tener en cuenta posibles cambios metodológicos que hacen que no sean directamente comparables resultados de distintas encuestas. Por ejemplo, cambios en el diseño muestral, la cantidad de visitas a un mismo hogar, entre otros. 
+<br><br>
+--
+
+<!-- - No está bien comparar intervalos de confianza para comparar estimaciones entre diferentes años, porque no es una encuesta de panel. -->
+
+---
+# Diseño de muestreo
+
+- ¿Qué necesitamos para hacer estimaciones y calcular intervalos de confianza?
+<br><br>
+--
+
+- ¿Cuáles **variables** se deben especificar en el diseño?
+<br><br>
+--
+
+- En las **bases públicas** se cuenta con la información de las UPM y estratos, por ahora, solo para 2018 y 2019. 
+<br><br>
+--
+
+- Estas dos variables vienen en un archivo aparte pero con el paquete ech se agregan automáticamente a los microdatos de hogares y personas.
+<br><br>
+--
+
+- La variable que viene para todos los años, estred13, no contiene los estratos originales, no la usamos.
+<br><br>
+--
+
+- Usar la información de las UPM y estratos no afectará a las estimaciones puntuales de los indicadores, pero si a los errores estándares (SE) de los estimadores y por ende a los intervalos de confianza de la estimación.
+
+
+---
+# Variables
+
+Observemos las variables que vamos a usar en el diseño
+```{r message=FALSE}
+ech19 %>% select(numero, estrato, upm, pesoano, pesotri, pesomen) %>%  head(6) #<<
+
+```
+
+Si para un hogar 'pesoano' es igual a 21 quiere decir que se representa a sí mismo y a 20 hogares más.
+
+---
+# Ponderadores
+
+- La suma de todos esos pesos equivale a la cantidad de hogares de la población a la que la muestra representa.
+
+```{r }
+ech19 %>% select(pesoano, pesotri) %>%
+        summarise_all(sum) 
+```
+
+---
+# Ponderadores
+
+- La suma de 'pesotri' tiene sentido si consideramos los casos encuestados en un trimestre
+```{r}
+ech19 %>% select(pesoano, pesotri, mes) %>%        
+filter(mes %in% 1:3) %>% 
+summarise(sum(pesotri))
+```
+
+
+---
+# Bases públicas
+
+- La  `r text_spec2("base pública")` (se obtiene de la web del INE) es  `r text_spec2("anonimizada")` y  `r text_spec2("no contiene a la variable 'zona'")` (una manzana aprox.) que podría permitir la identificación de la vivienda  ni personas que la habitan.
+<br><br>
+
+
+Bases | Datos personales | Ubicación de la vivienda | Sección | Segmento | Zona 
+--------| ------------|------------ | ----------| -----------| ---------
+INE | Sí | Sí | Sí | Sí | Sí 
+Pública | No | No | Sí | Sí |No
+
+- Para Montevideo también se incluyen las variables Barrio y CCZ.
+<!-- --- -->
+<!-- # -->
+
+<!-- mostrar mapa con secc, segm, zona -->
+
+
+---
+# Mercado de trabajo
+
+- La ECH está diseñada para producir **estimaciones confiables**, para **mercado de trabajo e ingresos de los hogares de forma mensual**, con una apertura geográfica de Montevideo e interior y para una mayor **desagregación geográfica y/o para otros dominios de estudio de forma anual**. 
+<br><br>
+--
+
+- En la ECH para determinar si la persona es ocupada se considera como **período de referencia**, la semana anterior a la realización de la entrevista.
+<br><br>
+--
+
+- Se aplica únicamente a las `r text_spec2("base pública")`personas de 14 o más años de edad. 
+<br><br>
+--
+
+- Se distinguen diferentes **poblaciones**: 
+  - `r text_spec2("población en edad de trabajar (PET)")`
+  - `r text_spec2("población económicamente activa (PEA)")`
+  - `r text_spec2("población ocupada (PO)")`
+  - `r text_spec2("población desocupada (PD)")`
+  - `r text_spec2("población económicamente inactiva (PEI)")`
+<br><br>
+
+Fuente: [Ficha técnica ECH 2018](http://www.ine.gub.uy/encuesta-continua-de-hogares1)
+
+---
+# PET, PEA
+
+`r text_spec2("PET")` (Población en edad de trabajar)
+
+Población total de `r text_spec2("14 o más años de edad")` 
+
+`r text_spec2("PEA")` (Población económicamente activa)
+
+Personas de 14 o más años de edad, que `r text_spec2("tiene al menos una ocupación")`, `r text_spec2("o")`  que, sin tenerla, la `r text_spec2("buscan activamente durante el período de referencia")` elegido para la encuesta. Este grupo incluye la fuerza de trabajo civil y los/as efectivos/as de las fuerzas armadas.
+
+---
+# PEI
+
+`r text_spec2("PEI")` (Población económicamente inactiva)
+
+Personas que `r text_spec2("no aportan su trabajo para producir bienes o servicios")`  económicos y `r text_spec2("no buscan trabajo")`. Se clasifica en las siguientes categorías: 
+  - personas que se ocupan solamente del cuidado de su hogar, 
+  - estudiantes, 
+  - jubiladas/os, 
+  - pensionistas, 
+  - rentistas
+
+`r text_spec2("¡El trabajo doméstico no remunerado no se considera trabajo!")`
+
+---
+class: center
+# 
+
+<img src="https://raw.githubusercontent.com/calcita/Curso-rECH/master/images/adam_smith.jpg"  height = "20%", align="center" />
+
+---
+# PO, PD
+
+`r text_spec2("PO")` (Población ocupada o empleada)
+
+Personas que `r text_spec2("trabajaron por lo menos 1 hora durante el período de referencia")` de la encuesta, o que no lo hicieron por estar de vacaciones, por enfermedad, accidente, conflicto de trabajo o interrupción de este a causa del mal tiempo, averías producidas en las maquinarias o falta de materias primas, pero `r text_spec2("tiene empleo al que volverá con seguridad")`. Se incluyen en esta categoría a las/los trabajadoras/es familiares no remuneradas/os.
+<br>
+
+`r text_spec2("PD")` (Población desocupada)
+
+Personas que durante el período de referencia `r text_spec2("no tenían trabajo, buscaban un trabajo remunerado")`, y estaban disponible en ese momento para comenzar a trabajar. Esta categoría comprende a las personas que trabajaron antes pero perdieron su empleo (desocupados propiamente dichos), desempleados en seguro de paro y aquellas que buscan su primer trabajo.
+
+---
+# 'pobpcoac'
+
+
+```{r eval=FALSE}
+# Analizamos 'pobcoac'
+library(labelled) # paquete para ver las etiquetas
+ech19 %>% select(pobpcoac) %>% val_labels()
+```
+
+```{r eval=FALSE}
+1 - 'Menores de 14 años'	
+2 - 'Ocupados'
+3 - 'Desocupados buscan trab. por 1a. vez'	
+4 - 'Desocupados propiamente dichos'	
+5 - 'Desocupados en seguro de paro'	
+6 - 'Inactivo: realiza los quehaceres del hogar'	
+7 - 'Inactivo: estudiante'	
+8 - 'Inactivo: rentista'	
+9 - 'Inactivo: pensionista'	
+10 - 'Inactivo: jubilado'
+11 - 'Inactivo: otro'	
+```
+
+---
+# Cálculo de variables
+```{r}
+# PEA: 2- Ocupados, 3- Desocupados buscan trab. por 1a. vez, 
+#      4-Desocupados propiamente dichos, 5-Desocupados en seguro de paro 
+# PET: ! 1-Menores de 14 años
+# PO: 2 - Ocupados
+# PD: 3- Desocupados buscan trab. por 1a. vez, 4-Desocupados propiamente dichos, 
+#     5-Desocupados en seguro de paro
+
+ech19 <- ech19 %>% mutate(pea = if_else(pobpcoac %in% 2:5, 1, 0),
+                          pet = if_else(pobpcoac != 1, 1, 0),
+                          po = if_else(pobpcoac == 2, 1, 0),
+                          pd = if_else(pobpcoac %in% 3:5, 1, 0))
+```
+```{r}
+ech19 %>% select(pea, pet, po, pd) %>% summarise_each(sum)
+```
+
+---
+class: inverse, center, middle
+# ech::employment()
+
+---
+# Calculo las variables usando ech
+
+```{r eval  =FALSE}
+# reviso la ayuda 
+?employment #<<
+```
+
+Esta función permite calcula las siguientes variables: PEA, PET, PO, PD
+
+```{r eval  = FALSE}
+ech19 <- employment(data = ech19, pobpcoac = "pobpcoac") #<<
+```
+
+Comparamos los resultados:
+```{r}
+ech19 %>% select(pea, pet, po, pd) %>% summarise_each(sum)
+```
+---
+# Tasas
+
+- La `r text_spec2("tasa de actividad")` se calcula como la razón entre la población económicamente activa y la población total en edad de trabajar (14 o más años de edad): `r text_spec2("TA = PEA / PET")`
+<br><br>
+--
+
+- La `r text_spec2("tasa de desempleo")` se calcula como el cociente entre la población desempleada y la población económicamente activa: `r text_spec2("TD = PD/PEA")`
+<br><br>
+--
+
+- La `r text_spec2("tasa de empleo")` se calcula como el cociente entre la población ocupada y la población en edad de trabajar: `r text_spec2("TE = PO/PET")`
+
+
+<!-- TI = PI/PO -->
+
+---
+class: inverse, center, middle
+# ech::get_estimation_ratio()
+
+
+---
+# Estimación de una tasa
+
+Usamos la función de ech llamada  `r text_spec2("get_estimation_ratio()")` cuyos  `r text_spec2("argumentos y valores por defecto")` son los siguientes:
+
+```{r eval = FALSE}
+get_estimation_ratio(
+  data = ech::toy_ech_2018, # data.frame
+  variable.x = NULL,        # numerador
+  variable.y = NULL,        # denominador
+  by.x = NULL,              # otra variable
+  by.y = NULL,              # otra variable
+  domain = NULL,            # subpoblacion, dominio
+  level = NULL,             # hogares o personas
+  ids = NULL,               # upm
+  numero = "numero",        # id hogar
+  estrato = NULL,           # estratos
+  pesoano = "pesoano",      # ponderador
+  name = "estimacion"       # etiqueta resultado
+)
+```
+
+
+---
+# Estimación de la tasa de actividad
+
+<!-- Cuando la variable es numérica, svy_mean devolverá una **estimación de la media**. Mientras que si la variable es binaria, svy_mean devolverá la **estimación de la proporción**. -->
+- Indicamos las variables para estimar el ratio, PEA y PET
+- Indicamos las variables del diseño de muestra
+- La unidad de análisis
+
+```{r eval = FALSE}
+library(ech)
+
+# Estimación de la tasa de actividad
+tabla <- get_estimation_ratio(data = ech19,
+                              variable.x = "pea",
+                              variable.y = "pet",
+                              ids = "upm",
+                              level = "i",
+                              estrato = "estrato",
+                              pesoano = "pesoano")
+```
+
+---
+# Ejercicio
+
+- Estimar la tasa de empleo para el total país
+
+- Estimar la tasa de desempleo para el total país
+
+- Comparar con los [resultados oficiales](http://www.ine.gub.uy/c/document_library/get_file?uuid=590504fd-5f0d-42ff-a94c-fba714fb3f65&groupId=10181) del INE 
+
+- ¿Qué pasa con las estimaciones por intervalo cuando no definimos UPM ni estrato? 
+
+- Calcular la variable subempleo. Ayuda: ?underemployment
+
+- Calcular la variable empleo con restricciones. Ayuda: ?employment_restrictions
+
+---
+# Estimación de tasa de actividad por departamento 
+
+```{r eval = FALSE}
+library(ech)
+
+# Estimación de la tasa de actividad
+tabla <- get_estimation_ratio(data = ech19,
+                              variable.x = "pea",
+                              variable.y = "pet",
+                              by.x = "dpto",
+                              ids = "upm",
+                              level = "i",
+                              estrato = "estrato",
+                              pesoano = "pesoano")
+```
+
+---
+# Ejercicio
+
+- Estimar la tasa de desempleo de agosto para el total país 
+
+- Estimar tasa de actividad de junio por sexo
+
+- Estimar la tasa de desempleo de agosto para Montevideo e Interior
+
+- Graficar las estimaciones e intervalos de confianza 
+
+- Si la estimación tasa de actividad, varía de un mes a otro puedo afirmar que subió o bajó? 
+
+
+---
+# Estimación en dominios
+
+- Un dominio es cualquier `r text_spec2("subpoblación")` para la cual se quiere realizar estimaciones.
+<br><br>
+--
+
+- Hay `r text_spec2("dominios planeados")` al tomar la muestra, por ejemplo los estratos, en estos casos sabemos que obtendremos estimaciones confiables ya que se ha controlado el tamaño de muestra.
+<br><br>
+--
+
+- Hay `r text_spec2("dominios no planeados")`, por ejemplo personas afrodescendientes, en estos casos el tamaño de muestra es aleatorio (no elegimos ni sabemos de antemano cuántos casos vamos a tener) y no siempre tendremos estimaciones confiables.
+<br><br>
+--
+
+- Si el tamaño de muestra en el dominio no es suficientemente grande, se pierde precisión en la estimación. 
+
+- Hay una rama del muestreo que refiere a la `r text_spec2("estimación en área pequeñas")`.
+
+---
+# Estimación de tasa de actividad para personas entre 18 y 35 años
+
+```{r eval = FALSE}
+library(ech)
+
+# Estimación de la tasa de actividad
+tabla <- get_estimation_ratio(data = ech19,
+                              variable.x = "pea",
+                              variable.y = "pet",
+                              ids = "upm",
+                              level = "i",
+                              estrato = "estrato",
+                              pesoano = "pesoano",
+                              domain = "e27 >= 18 & e27 <=35")
+```
+---
+# Ejercicio
+
+
+- Estimar la tasa de desempleo para la población afrodescendiente
+
+- Estimar la tasa de actividad para el departamento de Paysandú
+
+- Estimar la tasa de empleo para la zona urbana
+
+- ¿Qué reparos tengo que tener a la hora de usar estas estimaciones?
